@@ -2,22 +2,19 @@
 This is the template server side for ChatBot
 """
 from bottle import route, run, template, static_file, request
-import json, re, random, requests, wikipedia
+import json, re, random, requests
 
 BAD_WORD_API_NAME = 'nehoraigold'
 BAD_WORD_API_KEY = '8TahuZvfK4tCThrOh2L7LkvaGxUNFa8dcVIMCMuwpNwefDCU'
 WEATHER_API_KEY = '77bcbb75887d4405983155951181312'
-NO_WORDS = ("not", "no", 'nope')
-YES_WORDS = ('yeah', 'yes', 'yep', 'correct', 'right', 'yup', 'okay', 'ok', 'o.k.', "fine")
+NO_WORDS = ("not", "no", 'nope', 'whatever', 'nah')
+YES_WORDS = ('yeah', 'yes', 'yep', 'correct', 'right', 'yup', 'okay', 'ok', 'o.k.', "fine", 'sure')
 GREETING_WORDS = ("hello", "hi", "shalom", "bonjour", "alo", "what's up", "sup", "what is up", "greetings", "hey")
-HEARTBREAK_WORDS = ('hate', 'dislike', 'sucks', 'bad')
 NAME_PREFIXES = ('my name', 'my name\'s')
 INTERROGATIVE_WORDS = ('who', 'what', 'when', 'where', 'why', 'how')
 YES_NO_QUESTION_STARTERS = ('can', 'is', 'will', 'should', 'could', 'did', 'are you')
 JOKE_WORDS = ('joke', 'funny', 'jokes', 'laugh')
 SONG_WORDS = ('song', 'sing', 'music', 'lyrics', 'singer')
-YOU_WORDS = ('you', 'you\'re', 'your', 'yours')
-ME_WORDS = ('I', 'me', 'my', 'mine')
 WEATHER_WORDS = ('weather', 'sunny', 'rainy', 'cloudy')
 THANK_WORDS = ("thanks", "thank")
 NAMES = ("aviram", "lotem", "yoav", "ariel", "yiftach", "ilana", "omer", "gilad", "ori", "ruthy")
@@ -43,16 +40,19 @@ def handle_response(input):
     elif 'my name' in input.lower():
         return respond_to_name(all_words[-1])
     elif ' ' not in input and input.replace('?', '') not in INTERROGATIVE_WORDS:
-        return handle_one_word(input)
-    elif re.search(QUESTION_PATTERN, input):  # or any(parse_sentences(all_words, INTERROGATIVE_WORDS)):
+        word_without_punctuation = ''.join([char if char.isalpha() else '' for char in input])
+        return handle_one_word(word_without_punctuation)
+    elif re.search(QUESTION_PATTERN, input):
         sentences = re.split(SENTENCE_PATTERN, input)
         qmark_index = sentences.index("?")
         question = sentences[qmark_index - 1]
         return handle_question(question)
-    elif input.lower().startswith('i '):
+    elif input.lower().startswith('i ') or input.lower().startswith("i'm"):
         return handle_i_sentence(input)
-    elif input.lower().startswith('you '):
+    elif input.lower().startswith('you ') or input.lower().startswith("you're"):
         return handle_you_sentence(input)
+    elif input.lower()[-1] == "!":
+        return "afraid", "No need to shout. I can hear you just fine."
     else:
         return "confused", "I'm not sure I understood you."
 
@@ -70,22 +70,21 @@ def handle_greeting():
 
 def handle_you_sentence(sentence):
     words = sentence.split(' ')
-    if words[1] == "are":
-        return "bored", "Nobody's ever said that about me before!"
+    if words[1] == "are" or words[0] == "you're":
+        return "takeoff", "Nobody's ever said that about me before!"
     else:
         response = sentence.lower()
-        response = response.replace("You ", "I ")
+        response = response.replace("you ", "I ").replace("are", "am") + "? If you say so."
         return "afraid", response
 
 
 def handle_i_sentence(sentence):
     words = sentence.split(' ')
-    if words[1] == "am":
-        response = sentence.lower().replace('i am', 'You certainly are')
-        return "giggling", response
+    if words[1] == "am" or words[0].lower() == "i'm":
+        return "giggling", "You certainly are."
     else:
         response = sentence.lower()
-        response = response.replace('i ', 'You ')
+        response = response.replace('i ', 'You ').replace('you', 'me')
         response = response + "? Well, all right."
         return 'giggling', response
 
@@ -137,7 +136,7 @@ def handle_question(question):
             "That's the million-dollar question, isn't it.",
             "If I had a nickel for every time someone asked me that... I'd have... well, more than a nickel.",
             "You ask tough questions. I guess that's why they pay you the big bucks.",
-            "It doesn't matter {} as long as there's a little cash in it for you. Am I right?".format(question_word)
+            "It doesn't matter {} as long as there's a little cash in it for you. Am I right?".format(question_word.lower())
         )
         return_string = "{0}? {1}".format(question_word, random.choice(MONEY_PHRASE))
         return "money", return_string
@@ -145,7 +144,7 @@ def handle_question(question):
         if question.lower().startswith(YES_NO_QUESTION_STARTERS):
             reply = random.choice(("y", "n"))
             return get_affirmative() if reply == 'y' else get_negative()
-        return "giggling", "I think " + question.lower() + " is a really interesting question."
+        return "giggling", "I think that's a really interesting question. If only I knew the answer."
 
 
 def asks_for_something(words_in_message, request_triggers):
@@ -176,7 +175,11 @@ def get_song():
         'Mama, just killed a man. Put a gun against his head. Pulled my trigger, now he\'s dead...',
         'Never gonna give you up. Never gonna let you down. Never gonna turn around and desert you.'
     )
-    return 'dancing', random.choice(SONG_LYRICS)
+    lyric = random.choice(SONG_LYRICS)
+    if "dog" in lyric:
+        return 'dog', lyric
+    else:
+        return 'dancing', lyric
 
 
 def get_weather():
