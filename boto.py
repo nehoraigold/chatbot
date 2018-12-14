@@ -2,20 +2,25 @@
 This is the template server side for ChatBot
 """
 from bottle import route, run, template, static_file, request
-import json, re, random, requests
+import json, re, random, requests, wikipedia
 
 BAD_WORD_API_NAME = 'nehoraigold'
 BAD_WORD_API_KEY = '8TahuZvfK4tCThrOh2L7LkvaGxUNFa8dcVIMCMuwpNwefDCU'
 WEATHER_API_KEY = '77bcbb75887d4405983155951181312'
-NO_WORDS = ("not", "no", "n't", 'incorrect', 'wrong')
-YES_WORDS = ('yeah', 'yes', 'mhm', 'yep', 'correct', 'right', 'yup')
+NO_WORDS = ("not", "no", 'nope')
+YES_WORDS = ('yeah', 'yes', 'yep', 'correct', 'right', 'yup', 'okay', 'ok', 'o.k.', "fine")
 GREETING_WORDS = ("hello", "hi", "shalom", "bonjour", "alo", "what's up", "sup", "what is up", "greetings", "hey")
 HEARTBREAK_WORDS = ('hate', 'dislike', 'sucks', 'bad')
-NAME_PREFIXES = ("i am", "i'm", "my name is", "my name's")
-JOKE_WORDS = ('joke', 'funny')
-SONG_WORDS = ('song', 'sing')
+NAME_PREFIXES = ('my name', 'my name\'s')
+INTERROGATIVE_WORDS = ('who', 'what', 'when', 'where', 'why', 'how')
+YES_NO_QUESTION_STARTERS = ('can', 'is', 'will', 'should', 'could', 'did', 'are you')
+JOKE_WORDS = ('joke', 'funny', 'jokes', 'laugh')
+SONG_WORDS = ('song', 'sing', 'music', 'lyrics', 'singer')
+YOU_WORDS = ('you', 'you\'re', 'your', 'yours')
+ME_WORDS = ('I', 'me', 'my', 'mine')
 WEATHER_WORDS = ('weather', 'sunny', 'rainy', 'cloudy')
 THANK_WORDS = ("thanks", "thank")
+NAMES = ("aviram", "lotem", "yoav", "ariel", "yiftach", "ilana", "omer", "gilad", "ori", "ruthy")
 QUESTION_PATTERN = "[?]+"
 SENTENCE_PATTERN = "([\.\!\?]+)\s*"
 
@@ -35,11 +40,19 @@ def handle_response(input):
         return handle_greeting()
     elif any(parse_sentences(all_sentences, THANK_WORDS)):
         return "ok", "You're very welcome."
-    elif re.search(QUESTION_PATTERN, input):
+    elif 'my name' in input.lower():
+        return respond_to_name(all_words[-1])
+    elif ' ' not in input and input.replace('?', '') not in INTERROGATIVE_WORDS:
+        return handle_one_word(input)
+    elif re.search(QUESTION_PATTERN, input):  # or any(parse_sentences(all_words, INTERROGATIVE_WORDS)):
         sentences = re.split(SENTENCE_PATTERN, input)
         qmark_index = sentences.index("?")
         question = sentences[qmark_index - 1]
         return handle_question(question)
+    elif input.lower().startswith('i '):
+        return handle_i_sentence(input)
+    elif input.lower().startswith('you '):
+        return handle_you_sentence(input)
     else:
         return "confused", "I'm not sure I understood you."
 
@@ -55,10 +68,84 @@ def handle_greeting():
     return "excited", random.choice(GREETING_RESPONSES)
 
 
-def handle_question(question):
-    word_list = question.split(' ')
+def handle_you_sentence(sentence):
+    words = sentence.split(' ')
+    if words[1] == "are":
+        return "bored", "Nobody's ever said that about me before!"
+    else:
+        response = sentence.lower()
+        response = response.replace("You ", "I ")
+        return "afraid", response
 
-    return "giggling", "I think " + question.lower() + " is a really interesting question."
+
+def handle_i_sentence(sentence):
+    words = sentence.split(' ')
+    if words[1] == "am":
+        response = sentence.lower().replace('i am', 'You certainly are')
+        return "giggling", response
+    else:
+        response = sentence.lower()
+        response = response.replace('i ', 'You ')
+        response = response + "? Well, all right."
+        return 'giggling', response
+
+
+def handle_one_word(word):
+    if word.lower() in NAMES:
+        word = word[0].upper() + word[1:].lower()
+        return respond_to_name(word)
+    elif word.lower() in YES_WORDS:
+        return get_affirmative()
+    elif word.lower() in NO_WORDS:
+        return get_negative()
+    else:
+        return "confused", "I'm not sure what you meant by {}.".format(word.lower())
+
+
+def get_affirmative():
+    affirmative_responses = (
+        'Indeed.',
+        'Of course.',
+        'Affirmative.',
+        'Yes, naturally.',
+    )
+    return "ok", random.choice(affirmative_responses)
+
+
+def get_negative():
+    negative_responses = (
+        'No.',
+        'Certainly not.',
+        'Goodness, never.',
+        'I don\'t believe so.',
+        'Negative.'
+    )
+    return 'no', random.choice(negative_responses)
+
+
+def handle_question(question):
+    interrogative_words = \
+        list(filter(lambda x: x is not None, parse_sentences(question.split(' '), INTERROGATIVE_WORDS)))
+    if any(interrogative_words):
+        if 'name' in question:
+            if 'your' in question:
+                return "heartbroke", "My name is Boto. You've forgotten already?"
+            else:
+                return "confused", "I can't remember. Sorry."
+        question_word = interrogative_words[0][0].upper() + interrogative_words[0][1:]
+        MONEY_PHRASE = (
+            "That's the million-dollar question, isn't it.",
+            "If I had a nickel for every time someone asked me that... I'd have... well, more than a nickel.",
+            "You ask tough questions. I guess that's why they pay you the big bucks.",
+            "It doesn't matter {} as long as there's a little cash in it for you. Am I right?".format(question_word)
+        )
+        return_string = "{0}? {1}".format(question_word, random.choice(MONEY_PHRASE))
+        return "money", return_string
+    else:
+        if question.lower().startswith(YES_NO_QUESTION_STARTERS):
+            reply = random.choice(("y", "n"))
+            return get_affirmative() if reply == 'y' else get_negative()
+        return "giggling", "I think " + question.lower() + " is a really interesting question."
 
 
 def asks_for_something(words_in_message, request_triggers):
@@ -72,21 +159,21 @@ def parse_sentences(all_sentences, what_to_parse_for):
     return list_of_words
 
 
+def respond_to_name(name):
+    return "inlove", "{}? What a beautiful name!".format(name)
+
+
 def get_joke():
-    url = 'https://icanhazdadjoke.com'
-    headers = {
-        "Accept": "text/plain",
-        "User-Agent": "ITC-Chatbot-Exercise"
-    }
-    req = requests.get(url, headers=headers)
-    joke = req.text
+    url = 'https://api.yomomma.info/'
+    req = requests.get(url)
+    joke = json.loads(req.text)['joke'] + "."
     return "laughing", joke
 
 
 def get_song():
     SONG_LYRICS = (
         'Who let the dogs out? Who, who, who, who, who?',
-        'Mamaaaa, just killed a man. Put a gun against his head. Pulled my trigger, now he\'s dead...',
+        'Mama, just killed a man. Put a gun against his head. Pulled my trigger, now he\'s dead...',
         'Never gonna give you up. Never gonna let you down. Never gonna turn around and desert you.'
     )
     return 'dancing', random.choice(SONG_LYRICS)
