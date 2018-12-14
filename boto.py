@@ -2,7 +2,10 @@
 This is the template server side for ChatBot
 """
 from bottle import route, run, template, static_file, request
-import json, re, random, requests
+import json
+import re
+import random
+import requests
 
 BAD_WORD_API_NAME = 'nehoraigold'
 BAD_WORD_API_KEY = '8TahuZvfK4tCThrOh2L7LkvaGxUNFa8dcVIMCMuwpNwefDCU'
