@@ -213,7 +213,6 @@ def has_curse_word(input):
     }
     req = requests.post(url, params, json.dumps(params))
     response = json.loads(req.text)
-    print(response)
     is_bad = response["is-bad"]
     return is_bad
 
