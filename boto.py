@@ -26,8 +26,8 @@ SENTENCE_PATTERN = "([\.\!\?]+)\s*"
 
 
 def handle_response(input):
-    # if has_curse_word(input):
-    #     return handle_curse()
+    if has_curse_word(input):
+        return handle_curse()
     all_sentences = re.split(SENTENCE_PATTERN, input)
     all_words = input.split(' ')
     if asks_for_something(all_words, JOKE_WORDS):
@@ -39,7 +39,7 @@ def handle_response(input):
     elif any(parse_sentences(all_sentences, GREETING_WORDS)):
         return handle_greeting()
     elif any(parse_sentences(all_sentences, THANK_WORDS)):
-        return "ok", "You're very welcome."
+        return "waiting", "You're very welcome."
     elif 'my name' in input.lower():
         return respond_to_name(all_words[-1])
     elif ' ' not in input and input.replace('?', '') not in INTERROGATIVE_WORDS:
@@ -139,7 +139,8 @@ def handle_question(question):
             "That's the million-dollar question, isn't it.",
             "If I had a nickel for every time someone asked me that... I'd have... well, more than a nickel.",
             "You ask tough questions. I guess that's why they pay you the big bucks.",
-            "It doesn't matter {} as long as there's a little cash in it for you. Am I right?".format(question_word.lower())
+            "It doesn't matter {} as long as there's a little cash in it for you. Am I right?".format(
+                question_word.lower())
         )
         return_string = "{0}? {1}".format(question_word, random.choice(MONEY_PHRASE))
         return "money", return_string
@@ -203,6 +204,7 @@ def get_weather():
 
 
 def has_curse_word(input):
+    # Curse word API has a limit of 50 per day for free version
     url = 'https://neutrinoapi.com/bad-word-filter'
     params = {
         'user-id': BAD_WORD_API_NAME,
@@ -211,6 +213,7 @@ def has_curse_word(input):
     }
     req = requests.post(url, params, json.dumps(params))
     response = json.loads(req.text)
+    print(response)
     is_bad = response["is-bad"]
     return is_bad
 
