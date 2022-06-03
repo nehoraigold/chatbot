@@ -1,6 +1,6 @@
 astroid==2.0.4
 beautifulsoup4==4.6.3
-bottle==0.12.15
+bottle==0.12.20
 certifi==2018.11.29
 chardet==3.0.4
 colorama==0.4.0
